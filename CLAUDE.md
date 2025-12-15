@@ -13,16 +13,42 @@ npm run lint     # Run ESLint
 
 ## Architecture
 
-This is a Next.js 16 application using the App Router with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui.
+Next.js 16 App Router application with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui. This is a Polymarket trading bot with a dashboard UI.
 
-**Key directories:**
-- `src/app/` - Next.js App Router pages and layouts
-- `src/components/ui/` - shadcn/ui components
-- `src/lib/` - Utilities (includes `cn()` for class merging)
+### Core Modules
 
-**shadcn/ui configuration:**
-- Style: new-york
-- Uses Lucide icons
-- Add components via: `npx shadcn@latest add <component>`
+**`src/lib/polymarket/`** - Polymarket SDK integration:
+- `client.ts` - SDK initialization with GammaSDK (market data, no auth) and ClobClient (trading, requires auth)
+- `websocket.ts` - `PolymarketWebSocket` class for real-time order book and price streaming with auto-reconnect
+- `types.ts` - Type definitions for markets, orders, positions, and strategy configs
+
+**`src/lib/strategies/`** - Trading strategies:
+- `market-maker.ts` - `MarketMaker` class providing bid/ask liquidity around mid-price with configurable spread
+- `arbitrage.ts` - `ArbitrageDetector` class finding YES/NO mispricing opportunities (when YES + NO < 1.0)
+
+Both strategies use singleton pattern via `getMarketMaker()` and `getArbitrageDetector()`.
+
+**`src/app/api/`** - REST API routes:
+- `GET /api/markets` - Fetch active markets (params: `limit`, `active`)
+- `GET /api/bot/status` - Bot status including portfolio balance, active strategies, and arbitrage opportunities
+
+**`src/app/dashboard/`** - React dashboard showing portfolio, market data, and arbitrage alerts.
+
+### Environment Variables
+
+Required for trading operations (not needed for market data):
+```
+POLYMARKET_PRIVATE_KEY      # Wallet private key
+POLYMARKET_FUNDER_ADDRESS   # Wallet address for trades
+POLYMARKET_CHAIN_ID         # Default: 137 (Polygon)
+POLYMARKET_CLOB_HOST        # Default: https://clob.polymarket.com
+POLYMARKET_GAMMA_HOST       # Default: https://gamma-api.polymarket.com
+```
+
+### Key Dependencies
+
+- `@hk/polymarket` (GammaSDK) - Market data fetching
+- `@polymarket/clob-client` - Order execution and account management
+- shadcn/ui with Lucide icons
 
 **Import alias:** `@/*` maps to `./src/*`
